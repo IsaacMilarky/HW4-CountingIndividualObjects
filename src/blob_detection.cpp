@@ -138,19 +138,19 @@ cv::Mat getKmeansBinMask(cv::Mat * src)
             MAX_ITER, cv::KMEANS_PP_CENTERS, colors);
 
     //Transform color to mask colors
-    float firstColorGrey = 0.2989 * colors(0,2) + 0.5871 * colors(0,1) + 0.114 * colors(0,0);
-    float secondColorGrey = 0.2989 * colors(1,2) + 0.5871 * colors(1,1) + 0.114 * colors(1,0);
+    float firstColorGrey = 0;//0.2989 * colors(0,2) + 0.5871 * colors(0,1) + 0.114 * colors(0,0);
+    float secondColorGrey = 255;//0.2989 * colors(1,2) + 0.5871 * colors(1,1) + 0.114 * colors(1,0);
 
-    if(firstColorGrey < secondColorGrey)
-    {
-        firstColorGrey = 0;
-        secondColorGrey = 255;
-    }
-    else
-    {
-        secondColorGrey = 0;
-        firstColorGrey = 255;
-    }
+    //if(firstColorGrey < secondColorGrey)
+    //{
+    //    firstColorGrey = 0;
+    //    secondColorGrey = 255;
+    //}
+    //else
+    //{
+    //    secondColorGrey = 0;
+    //    firstColorGrey = 255;
+    //}
 
     float greyColors[2] = {firstColorGrey,secondColorGrey};
 
