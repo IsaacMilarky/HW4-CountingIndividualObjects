@@ -114,3 +114,57 @@ cv::Mat applyKmeansGreyScale(cv::Mat * src, int k)
 
     return outputImage.clone();
 }
+
+cv::Mat getKmeansBinMask(cv::Mat * src)
+{
+    const int MAX_ITER = 4;
+    const unsigned int arrSize = src->rows * src->cols;
+
+    cv::Size inputSize = src->size();
+    cv::Mat outputGreyscale = cv::Mat(inputSize,CV_8U);
+
+    //Data needs to be 1d for opencv
+    cv::Mat greyData = outputGreyscale.reshape(1,arrSize);
+    cv::Mat data = src->reshape(1,arrSize);
+    data.convertTo(data, CV_32F);
+
+    //Store color of each cluster and status of each pixel after kmeans
+    std::vector<int> labels;
+    cv::Mat1f colors;
+
+    //Apply kmeans
+    cv::kmeans(data,2, labels,
+        cv::TermCriteria(cv::TermCriteria::EPS+cv::TermCriteria::COUNT, 10, 1.),
+            MAX_ITER, cv::KMEANS_PP_CENTERS, colors);
+
+    //Transform color to mask colors
+    float firstColorGrey = 0.2989 * colors(0,2) + 0.5871 * colors(0,1) + 0.114 * colors(0,0);
+    float secondColorGrey = 0.2989 * colors(1,2) + 0.5871 * colors(1,1) + 0.114 * colors(1,0);
+
+    if(firstColorGrey < secondColorGrey)
+    {
+        firstColorGrey = 0;
+        secondColorGrey = 255;
+    }
+    else
+    {
+        secondColorGrey = 0;
+        firstColorGrey = 255;
+    }
+
+    float greyColors[2] = {firstColorGrey,secondColorGrey};
+
+    //Transform pixels to cluster color
+    for (unsigned int iter = 0 ; iter < arrSize ; iter++ )
+    {
+		//data.at<float>(iter, 0) = colors(labels[iter], 0);
+		//data.at<float>(iter, 1) = colors(labels[iter], 1);
+		//data.at<float>(iter, 2) = colors(labels[iter], 2);
+        greyData.at<uchar>(iter) = greyColors[labels[iter]];
+	}
+
+    //std::cout << colors << std::endl;
+    cv::Mat outputImage = greyData.reshape(1,src->rows);
+    outputImage.convertTo(outputImage,CV_8UC1);
+    return outputImage.clone();
+}
