@@ -16,6 +16,6 @@ find_package(OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS}  )
 
 
-#Task 1
-add_executable(kmeans src/kmeans_segmentation.cpp src/histogram.cpp src/blob_detection.cpp)
-target_link_libraries(kmeans ${OpenCV_LIBS})
+#Do hw in one executable.
+add_executable(hw4 src/kmeans_segmentation.cpp src/histogram.cpp src/blob_detection.cpp)
+target_link_libraries(hw4 ${OpenCV_LIBS})
