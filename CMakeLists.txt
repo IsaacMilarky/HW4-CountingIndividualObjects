@@ -17,5 +17,5 @@ include_directories( ${OpenCV_INCLUDE_DIRS}  )
 
 
 #Do hw in one executable.
-add_executable(hw4 src/kmeans_segmentation.cpp src/histogram.cpp src/blob_detection.cpp)
+add_executable(hw4 src/hw4.cpp src/histogram.cpp src/blob_detection.cpp)
 target_link_libraries(hw4 ${OpenCV_LIBS})
