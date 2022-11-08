@@ -15,24 +15,30 @@ int main(int argc, char ** argv)
         return -1;
     }
 
-    int k = 2;
+    //Declare input image and erosion/dilation kernel
     cv::Mat inputImageColorGrouping = cv::imread(argv[1], cv::IMREAD_COLOR);
+    cv::Mat kernel1 = cv::Mat::ones(3, 3, CV_8U);
 
+    //Get background from kmeans
     cv::Mat mask = getKmeansBinMask(&inputImageColorGrouping);
     imwrite("kmeansColor.png", mask);
 
-    //Get distance transform for markers.
+    //Get distance transform for sure foregound..
     cv::Mat dist;
-    cv::distanceTransform(mask,dist,cv::DIST_L2,3);
+    cv::distanceTransform(mask,dist,cv::DIST_MASK_3,0);
     imwrite("distancetransform.png",dist);
-    //cv::normalize(dist,dist,0,1.0,cv::NORM_MINMAX);
-    //Threshold distance transform at 10 for markers.
-    cv::threshold(dist,dist,8,255.0,cv::THRESH_BINARY);
 
-    //Dilate markers to be more visible.
-    cv::Mat kernel1 = cv::Mat::ones(3, 3, CV_8U);
-    dilate(dist, dist, kernel1);
-    imwrite("markers.png", dist);
+    //Threshold distance transform at 10 for markers.
+    cv::threshold(dist,dist,1,255.0,cv::THRESH_BINARY);
+    //erode markers to be more distinct.
+    //dilate(dist, dist, kernel1, cv::Point(-1, -1), 1);
+    cv::Mat sureForeground;
+    erode(dist, sureForeground, kernel1, cv::Point(-1, -1), 3);
+    imwrite("markers.png", sureForeground);
+
+    //Dilate mask image.
+    dilate(mask,mask,kernel1);
+    imwrite("dilation.png",mask);
 
     //Create marker object for opencv watershed
     cv::Mat dist_8u;
@@ -80,7 +86,7 @@ int main(int argc, char ** argv)
     cv::Mat mark;
     markers.convertTo(mark, CV_8U);
     cv::bitwise_not(mark, mark);
-    //    imshow("Markers_v2", mark); // uncomment this if you want to see how the mark
+    //imwrite("Markers_v2.png", mark); // uncomment this if you want to see how the mark
     // image looks like at that point
     // Generate random colors
     std::vector<cv::Vec3b> colors;
