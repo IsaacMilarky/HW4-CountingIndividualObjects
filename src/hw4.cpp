@@ -45,30 +45,12 @@ int main(int argc, char ** argv)
 
     //Compute foreground and background markers into one image.
     cv::Mat preMarkers = mask + sureForeground;
+    //cv::bitwise_not(preMarkers,preMarkers);
     imwrite("unsure.png",preMarkers);   
     preMarkers.convertTo(preMarkers,CV_8UC3);
 
-    //Create marker object for opencv watershed
-    cv::Mat dist_8u;
-    preMarkers.convertTo(dist_8u, CV_8U);
-
-    //Find total markers
-    std::vector<std::vector< cv::Point> > contours;
-    cv::findContours(dist_8u,contours,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
-
-    cv::Mat markers = cv::Mat::zeros(preMarkers.size(),CV_32S);
-
-    //Forground markers
-    for (size_t iter = 0; iter < contours.size(); iter++)
-    {
-        cv::drawContours(markers,contours,static_cast<int>(iter), cv::Scalar(static_cast<int>(iter)+1), -1);
-    }
-
-    cv::circle(markers,cv::Point(5,5),3,cv::Scalar(255), -1);
-    cv::Mat markers8u;
-
-    markers.convertTo(markers8u, CV_8U,10);
-    imwrite("marker_processed.png",markers8u);
+    cv::Mat markers;
+    preMarkers.convertTo(markers,CV32F);
 
     //Take Laplacian of gaussian of original image.
     cv::Mat LoGFilter = (cv::Mat_<float>(3,3) <<
@@ -113,7 +95,7 @@ int main(int argc, char ** argv)
         for (int j = 0; j < markers.cols; j++)
         {
             int index = markers.at<int>(i,j);
-            if (index > 0 && index <= static_cast<int>(contours.size()))
+            if (index > 0 && index <= static_cast<int>(2048))
             {
                 dst.at<cv::Vec3b>(i,j) = colors[index-1];
             }
