@@ -56,5 +56,56 @@ int main(int argc, char ** argv)
     markers.convertTo(markers8u, CV_8U,10);
     imwrite("marker_processed.png",markers8u);
 
+    //Take Laplacian of gaussian of original image.
+    cv::Mat LoGFilter = (cv::Mat_<float>(3,3) <<
+              1,  1, 1,
+              1, -8, 1,
+              1,  1, 1);
+
+    cv::Mat laplacianImage;
+    cv::filter2D(inputImageColorGrouping, laplacianImage, CV_32F, LoGFilter);
+    cv::Mat sharp;
+    inputImageColorGrouping.convertTo(sharp,CV_32F);
+    cv::Mat imgResult = sharp - laplacianImage; 
+
+    //Convert back to rgb images.
+    imgResult.convertTo(imgResult, CV_8UC3);
+    laplacianImage.convertTo(laplacianImage, CV_8UC3);
+
+    imwrite("Sharpened.png",imgResult);
+
+    //Perform watershed.
+    cv::watershed(imgResult,markers);
+
+    cv::Mat mark;
+    markers.convertTo(mark, CV_8U);
+    cv::bitwise_not(mark, mark);
+    //    imshow("Markers_v2", mark); // uncomment this if you want to see how the mark
+    // image looks like at that point
+    // Generate random colors
+    std::vector<cv::Vec3b> colors;
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+        int b = cv::theRNG().uniform(0, 256);
+        int g = cv::theRNG().uniform(0, 256);
+        int r = cv::theRNG().uniform(0, 256);
+        colors.push_back(cv::Vec3b((uchar)b, (uchar)g, (uchar)r));
+    }
+    // Create the result image
+    cv::Mat dst = cv::Mat::zeros(markers.size(), CV_8UC3);
+    // Fill labeled objects with random colors
+    for (int i = 0; i < markers.rows; i++)
+    {
+        for (int j = 0; j < markers.cols; j++)
+        {
+            int index = markers.at<int>(i,j);
+            if (index > 0 && index <= static_cast<int>(contours.size()))
+            {
+                dst.at<cv::Vec3b>(i,j) = colors[index-1];
+            }
+        }
+    }
+    // Visualize the final image
+    imwrite("Final_Result.png", dst);
     return 0;
 }
