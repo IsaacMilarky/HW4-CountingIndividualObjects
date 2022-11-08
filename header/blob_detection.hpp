@@ -17,3 +17,7 @@ cv::Mat applyKmeans(cv::Mat * src, int k);
 cv::Mat applyKmeansGreyScale(cv::Mat * src, int k);
 
 cv::Mat getKmeansBinMask(cv::Mat * src);
+
+cv::Mat getPreMarkers(cv::Mat * src);
+
+cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask);
