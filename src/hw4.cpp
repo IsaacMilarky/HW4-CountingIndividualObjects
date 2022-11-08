@@ -21,34 +21,42 @@ int main(int argc, char ** argv)
 
     //Get background from kmeans
     cv::Mat mask = getKmeansBinMask(&inputImageColorGrouping);
-    imwrite("kmeansColor.png", mask);
+    imwrite("kmeansMask.png", mask);
 
     //Get distance transform for sure foregound..
     cv::Mat dist;
     cv::distanceTransform(mask,dist,cv::DIST_MASK_3,0);
     imwrite("distancetransform.png",dist);
 
-    //Threshold distance transform at 10 for markers.
+    //Threshold distance transform at 1 for markers.
     cv::threshold(dist,dist,1,255.0,cv::THRESH_BINARY);
-    //erode markers to be more distinct.
-    //dilate(dist, dist, kernel1, cv::Point(-1, -1), 1);
+    //erode foreground to be more distinct.
     cv::Mat sureForeground;
     erode(dist, sureForeground, kernel1, cv::Point(-1, -1), 3);
-    imwrite("markers.png", sureForeground);
+    imwrite("foreground.png", sureForeground);
 
-    //Dilate mask image.
+    //Dilate mask image for more generous background detection.
     dilate(mask,mask,kernel1);
     imwrite("dilation.png",mask);
 
+    //Invert the kmeans mask to find background highlighted.
+    sureForeground.convertTo(sureForeground,CV_8UC1);
+    cv::bitwise_not(mask,mask);
+
+    //Compute foreground and background markers into one image.
+    cv::Mat preMarkers = mask + sureForeground;
+    imwrite("unsure.png",preMarkers);   
+    preMarkers.convertTo(preMarkers,CV_8UC3);
+
     //Create marker object for opencv watershed
     cv::Mat dist_8u;
-    dist.convertTo(dist_8u, CV_8U);
+    preMarkers.convertTo(dist_8u, CV_8U);
 
     //Find total markers
     std::vector<std::vector< cv::Point> > contours;
     cv::findContours(dist_8u,contours,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
 
-    cv::Mat markers = cv::Mat::zeros(dist.size(),CV_32S);
+    cv::Mat markers = cv::Mat::zeros(preMarkers.size(),CV_32S);
 
     //Forground markers
     for (size_t iter = 0; iter < contours.size(); iter++)
