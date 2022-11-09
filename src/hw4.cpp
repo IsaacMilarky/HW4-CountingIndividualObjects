@@ -19,18 +19,19 @@ int main(int argc, char ** argv)
     cv::Mat inputImageColorGrouping = cv::imread(argv[1], cv::IMREAD_COLOR);
     cv::Mat kernel1 = cv::Mat::ones(3, 3, CV_8U);
 
+    //Get raw mask that will be turned into marker objects (markers and contours)
     cv::Mat preMarkers = getPreMarkers(&inputImageColorGrouping);
 
+    //Use mask found to create marker objects and apply watershed. Saving it to dst.
     cv::Mat dst = watershedHighlightObjects(&inputImageColorGrouping,&preMarkers);
+
     // Visualize the watershed image
     imwrite("watershed.png", dst);
-
-    //dst.convertTo(dst,CV_8UC1);
-    cvtColor(dst, dst,cv::COLOR_BGR2GRAY);
 
     //Get background from kmeans
     cv::Mat mask = getKmeansBinMask(&inputImageColorGrouping);
 
+    //Write out component labels and original image with the blue parts highlighted.
     imwrite("componentLabeling.png",applyComponentLabeling(&preMarkers,&inputImageColorGrouping));
     imwrite("bluHighlighted.png", inputImageColorGrouping);
     return 0;

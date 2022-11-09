@@ -230,6 +230,7 @@ cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask)
     markers.convertTo(markers8u, CV_8U,10);
 
     //Take Laplacian of gaussian of original image.
+    //This makes watershed more effective.
     cv::Mat LoGFilter = (cv::Mat_<float>(3,3) <<
               1,  1, 1,
               1, -8, 1,
@@ -253,8 +254,8 @@ cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask)
     cv::Mat mark;
     markers.convertTo(mark, CV_8U);
     cv::bitwise_not(mark, mark);
-    //imwrite("Markers_v2.png", mark); // uncomment this if you want to see how the mark
-    // image looks like at that point
+
+
     // Generate random colors
     std::vector<cv::Vec3b> colors;
     for (size_t i = 0; i < contours.size(); i++)
@@ -264,6 +265,7 @@ cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask)
         int r = cv::theRNG().uniform(0, 256);
         colors.push_back(cv::Vec3b((uchar)b, (uchar)g, (uchar)r));
     }
+
     // Create the result image
     cv::Mat dst = cv::Mat::zeros(markers.size(), CV_8UC3);
     // Fill labeled objects with random colors
@@ -287,25 +289,24 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
     //Write data to file.
     std::fstream fs("component_data.txt", std::fstream::out | std::fstream::trunc);
 
+    //Create image to store labels in int matrix.
     cv::Mat labelImage(watershed->size(), CV_32S);
 
+    //Matrices to store info about the src image.
     cv::Mat stats;
     cv::Mat centroids;
     int nLabels = cv::connectedComponentsWithStats(*watershed,labelImage,stats,centroids);
 
     //Normalize and visualize connected components.
     cv::Mat seeLabels;
+    //Normalization makes more visible.
     cv::normalize(labelImage,seeLabels,0,255,cv::NORM_MINMAX,CV_8U);
 
-    //std::cout << centroids << std::endl;
     
     for(int i=0; i<stats.rows; i++)
     {
-        //Basic stats for testing.
+        //Query the area of each region.
         int area = stats.at<int>(cv::Point(cv::CC_STAT_AREA, i));
-        //int y = stats.at<int>(cv::Point(1, i));
-        //int w = stats.at<int>(cv::Point(2, i));
-        //int h = stats.at<int>(cv::Point(3, i));
 
         fs << "Area in pixels for region " << i << " = " << area << std::endl;
       
@@ -313,6 +314,9 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
 
     //Find average color of each region.
     //The easy way with a lot of memory.
+
+    //Store each sum in a vector as well as the count of 
+    //how many values have been added in pixelSums
     std::vector<double> bSumColors(stats.rows, 0.0);
     std::vector<double> gSumColors(stats.rows, 0.0);
     std::vector<double> rSumColors(stats.rows, 0.0);
@@ -327,23 +331,26 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
             cv::Vec3b pixel = original->at<cv::Vec3b>(rows, cols);
             //std::cout << label << std::endl;
             
-            //Update value sums
+            //add up sums
             bSumColors.at(label) += pixel[0];
             gSumColors.at(label) += pixel[1];
             rSumColors.at(label) += pixel[2];
 
+            //Count elements
             pixelSums.at(label)++;
 
             //std::cout << pixelSums.at(label) << std::endl;
          }
     }
 
+    //Count and catalog infected regions
     int infectedRegions = 0;
     std::vector<int> catalogOfInfected;
 
     //Calculate averages.
     for(int labelIter = 0; labelIter < stats.rows; labelIter++)
     {
+        //Divide the sums for each region.
         bSumColors.at(labelIter) /= pixelSums.at(labelIter);
         gSumColors.at(labelIter) /= pixelSums.at(labelIter);
         rSumColors.at(labelIter) /= pixelSums.at(labelIter);
@@ -367,16 +374,19 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
     fs << "Number infected regions: " << infectedRegions << std::endl;
     fs.close();
 
+    //highlight blue regions.
     for(int rows = 0; rows < original->rows; ++rows)
     {
         for(int cols = 0; cols < original->cols; ++cols){
-            int label = labelImage.at<int>(rows, cols);
 
+            //Get label and find if it is infected
+            int label = labelImage.at<int>(rows, cols);
             if ( std::find(catalogOfInfected.begin(), catalogOfInfected.end(), label) != catalogOfInfected.end())
             {
-                cv::Vec3b &pixel = original->at<cv::Vec3b>(rows, cols);
-                //std::cout << label << std::endl;
 
+                //If it's infected get the pixel of the original image and change it 
+                //to bright yellow.
+                cv::Vec3b &pixel = original->at<cv::Vec3b>(rows, cols);
                 pixel = cv::Vec3b(25, 255, 255);
             }
         }
