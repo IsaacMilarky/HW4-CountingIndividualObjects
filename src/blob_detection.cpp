@@ -282,3 +282,73 @@ cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask)
 
     return dst.clone();
 }
+
+cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
+{
+    cv::Mat labelImage(watershed->size(), CV_32S);
+
+    cv::Mat stats;
+    cv::Mat centroids;
+    int nLabels = cv::connectedComponentsWithStats(*watershed,labelImage,stats,centroids);
+
+    //Normalize and visualize connected components.
+    cv::Mat seeLabels;
+    cv::normalize(labelImage,seeLabels,0,255,cv::NORM_MINMAX,CV_8U);
+
+    //Compute area and mean color for each.
+    std::cout << nLabels << std::endl;
+
+    std::cout << "Number of regions: " << stats.size() << std::endl;
+    //std::cout << centroids << std::endl;
+    
+    for(int i=0; i<stats.rows; i++)
+    {
+        //Basic stats for testing.
+        int area = stats.at<int>(cv::Point(cv::CC_STAT_AREA, i));
+        //int y = stats.at<int>(cv::Point(1, i));
+        //int w = stats.at<int>(cv::Point(2, i));
+        //int h = stats.at<int>(cv::Point(3, i));
+
+        std::cout << "Area in pixels for region " << i << " = " << area << std::endl;
+      
+    }
+
+    //Find average color of each region.
+    //The easy way with a lot of memory.
+    std::vector<double> bSumColors(stats.rows, 0.0);
+    std::vector<double> gSumColors(stats.rows, 0.0);
+    std::vector<double> rSumColors(stats.rows, 0.0);
+
+    std::vector<double> pixelSums(stats.rows, 0.0);
+
+
+    for(int rows = 0; rows < original->rows; ++rows)
+    {
+        for(int cols = 0; cols < original->cols; ++cols){
+            int label = labelImage.at<int>(rows, cols);
+            cv::Vec3b pixel = original->at<cv::Vec3b>(rows, cols);
+            //std::cout << label << std::endl;
+            
+            //Update value sums
+            bSumColors.at(label) += pixel[0];
+            gSumColors.at(label) += pixel[1];
+            rSumColors.at(label) += pixel[2];
+
+            pixelSums.at(label)++;
+
+            //std::cout << pixelSums.at(label) << std::endl;
+         }
+    }
+
+    //Calculate averages.
+    for(int labelIter = 0; labelIter < stats.rows; labelIter++)
+    {
+        bSumColors.at(labelIter) /= pixelSums.at(labelIter);
+        gSumColors.at(labelIter) /= pixelSums.at(labelIter);
+        rSumColors.at(labelIter) /= pixelSums.at(labelIter);
+
+        std::cout << "Mean color for region " << labelIter << " : (" << rSumColors.at(labelIter) << ", " << bSumColors.at(labelIter) << ", " << gSumColors.at(labelIter) << ") \n"; 
+    }
+
+    return seeLabels.clone();
+}

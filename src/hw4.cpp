@@ -22,7 +22,17 @@ int main(int argc, char ** argv)
     cv::Mat preMarkers = getPreMarkers(&inputImageColorGrouping);
 
     cv::Mat dst = watershedHighlightObjects(&inputImageColorGrouping,&preMarkers);
-    // Visualize the final image
+    // Visualize the watershed image
     imwrite("Final_Result.png", dst);
+
+    //dst.convertTo(dst,CV_8UC1);
+    cvtColor(dst, dst,cv::COLOR_BGR2GRAY);
+
+    //Get background from kmeans
+    cv::Mat mask = getKmeansBinMask(&inputImageColorGrouping);
+
+    //cv::bitwise_not(preMarkers,preMarkers);
+    imwrite("bw.png", dst);
+    imwrite("comp.png",applyComponentLabeling(&preMarkers,&inputImageColorGrouping));
     return 0;
 }
