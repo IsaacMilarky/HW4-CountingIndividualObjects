@@ -23,7 +23,7 @@ int main(int argc, char ** argv)
 
     cv::Mat dst = watershedHighlightObjects(&inputImageColorGrouping,&preMarkers);
     // Visualize the watershed image
-    imwrite("Final_Result.png", dst);
+    imwrite("watershed.png", dst);
 
     //dst.convertTo(dst,CV_8UC1);
     cvtColor(dst, dst,cv::COLOR_BGR2GRAY);
@@ -31,8 +31,7 @@ int main(int argc, char ** argv)
     //Get background from kmeans
     cv::Mat mask = getKmeansBinMask(&inputImageColorGrouping);
 
-    //cv::bitwise_not(preMarkers,preMarkers);
-    imwrite("bw.png", dst);
-    imwrite("comp.png",applyComponentLabeling(&preMarkers,&inputImageColorGrouping));
+    imwrite("componentLabeling.png",applyComponentLabeling(&preMarkers,&inputImageColorGrouping));
+    imwrite("bluHighlighted.png", inputImageColorGrouping);
     return 0;
 }

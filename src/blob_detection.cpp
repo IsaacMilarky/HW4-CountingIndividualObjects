@@ -192,7 +192,7 @@ cv::Mat getPreMarkers(cv::Mat * src)
 
     //Dilate mask image for more generous background detection.
     dilate(mask,mask,kernel1);
-    imwrite("dilation.png",mask);
+    imwrite("backgroundMaskDilation.png",mask);
 
     //Invert the kmeans mask to find background highlighted.
     sureForeground.convertTo(sureForeground,CV_8UC1);
@@ -228,7 +228,6 @@ cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask)
     cv::Mat markers8u;
 
     markers.convertTo(markers8u, CV_8U,10);
-    imwrite("marker_processed.png",markers8u);
 
     //Take Laplacian of gaussian of original image.
     cv::Mat LoGFilter = (cv::Mat_<float>(3,3) <<
@@ -246,7 +245,7 @@ cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask)
     imgResult.convertTo(imgResult, CV_8UC3);
     laplacianImage.convertTo(laplacianImage, CV_8UC3);
 
-    imwrite("Sharpened.png",imgResult);
+    imwrite("SharpenedImage.png",imgResult);
 
     //Perform watershed.
     cv::watershed(imgResult,markers);
@@ -298,7 +297,6 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
     cv::Mat seeLabels;
     cv::normalize(labelImage,seeLabels,0,255,cv::NORM_MINMAX,CV_8U);
 
-    fs << "Number of regions: " << stats.size() << std::endl;
     //std::cout << centroids << std::endl;
     
     for(int i=0; i<stats.rows; i++)
@@ -340,6 +338,9 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
          }
     }
 
+    int infectedRegions = 0;
+    std::vector<int> catalogOfInfected;
+
     //Calculate averages.
     for(int labelIter = 0; labelIter < stats.rows; labelIter++)
     {
@@ -348,8 +349,40 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
         rSumColors.at(labelIter) /= pixelSums.at(labelIter);
 
         fs << "Mean color for region " << labelIter << " : (" << rSumColors.at(labelIter) << ", " << bSumColors.at(labelIter) << ", " << gSumColors.at(labelIter) << ") \n"; 
+
+        double red = rSumColors.at(labelIter);
+        double blue = bSumColors.at(labelIter);
+        double green = gSumColors.at(labelIter);
+
+        //Detect blue cells
+        if (blue > 120 && red < 210)
+        {
+            infectedRegions++;
+            fs << "Region " << labelIter << " is infected with blue!" << std::endl;
+            catalogOfInfected.push_back(labelIter);
+        }
     }
 
+    fs << "Number of regions: " << stats.rows << std::endl;
+    fs << "Number infected regions: " << infectedRegions << std::endl;
     fs.close();
+
+    for(int rows = 0; rows < original->rows; ++rows)
+    {
+        for(int cols = 0; cols < original->cols; ++cols){
+            int label = labelImage.at<int>(rows, cols);
+
+            if ( std::find(catalogOfInfected.begin(), catalogOfInfected.end(), label) != catalogOfInfected.end())
+            {
+                cv::Vec3b &pixel = original->at<cv::Vec3b>(rows, cols);
+                //std::cout << label << std::endl;
+
+                pixel = cv::Vec3b(25, 255, 255);
+            }
+        }
+    }
+
+
+
     return seeLabels.clone();
 }
