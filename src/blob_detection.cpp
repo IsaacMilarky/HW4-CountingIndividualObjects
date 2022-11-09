@@ -285,6 +285,9 @@ cv::Mat watershedHighlightObjects(cv::Mat * src, cv::Mat * markerMask)
 
 cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
 {
+    //Write data to file.
+    std::fstream fs("component_data.txt", std::fstream::out | std::fstream::trunc);
+
     cv::Mat labelImage(watershed->size(), CV_32S);
 
     cv::Mat stats;
@@ -295,10 +298,7 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
     cv::Mat seeLabels;
     cv::normalize(labelImage,seeLabels,0,255,cv::NORM_MINMAX,CV_8U);
 
-    //Compute area and mean color for each.
-    std::cout << nLabels << std::endl;
-
-    std::cout << "Number of regions: " << stats.size() << std::endl;
+    fs << "Number of regions: " << stats.size() << std::endl;
     //std::cout << centroids << std::endl;
     
     for(int i=0; i<stats.rows; i++)
@@ -309,7 +309,7 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
         //int w = stats.at<int>(cv::Point(2, i));
         //int h = stats.at<int>(cv::Point(3, i));
 
-        std::cout << "Area in pixels for region " << i << " = " << area << std::endl;
+        fs << "Area in pixels for region " << i << " = " << area << std::endl;
       
     }
 
@@ -347,8 +347,9 @@ cv::Mat applyComponentLabeling(cv::Mat * watershed, cv::Mat * original)
         gSumColors.at(labelIter) /= pixelSums.at(labelIter);
         rSumColors.at(labelIter) /= pixelSums.at(labelIter);
 
-        std::cout << "Mean color for region " << labelIter << " : (" << rSumColors.at(labelIter) << ", " << bSumColors.at(labelIter) << ", " << gSumColors.at(labelIter) << ") \n"; 
+        fs << "Mean color for region " << labelIter << " : (" << rSumColors.at(labelIter) << ", " << bSumColors.at(labelIter) << ", " << gSumColors.at(labelIter) << ") \n"; 
     }
 
+    fs.close();
     return seeLabels.clone();
 }
